@@ -1175,7 +1175,7 @@ where
                             // peer_stat.last_region_report_written_keys = 0;
                         }
                     } else {
-                        peer_stat.peer_id.replace(hb_task.peer.get_id());
+                        // peer_stat.peer_id.replace(hb_task.peer.get_id());
                     }
                     peer_stat.approximate_size = hb_task.approximate_size;
                     peer_stat.approximate_keys = hb_task.approximate_keys;
