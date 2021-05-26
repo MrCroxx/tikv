@@ -1192,11 +1192,33 @@ where
                                 "region_id" => hb_task.region.get_id(),
                                 "peer_id" => hb_task.peer.get_id(),
                             );
-                            0
+                            hb_task.written_bytes - peer_stat.last_region_report_written_bytes
                         });
                     let written_keys_delta = hb_task
                         .written_keys
-                        .saturating_sub(peer_stat.last_region_report_written_keys);
+                        .checked_sub(peer_stat.last_region_report_written_keys)
+                        .unwrap_or_else(|| {
+                            error!(
+                                "subtracting written_keys and last_written_keys overflowed";
+                                "region_id" => hb_task.region.get_id(),
+                                "peer_id" => hb_task.peer.get_id(),
+                            );
+                            hb_task.written_keys - peer_stat.last_region_report_written_keys
+                        });
+                    // let written_bytes_delta = hb_task
+                    //     .written_bytes
+                    //     .checked_sub(peer_stat.last_region_report_written_bytes)
+                    //     .unwrap_or_else(|| {
+                    //         error!(
+                    //             "subtracting written_bytes and last_written_bytes overflowed";
+                    //             "region_id" => hb_task.region.get_id(),
+                    //             "peer_id" => hb_task.peer.get_id(),
+                    //         );
+                    //         0
+                    //     });
+                    // let written_keys_delta = hb_task
+                    //     .written_keys
+                    //     .saturating_sub(peer_stat.last_region_report_written_keys);
                     let mut last_report_ts = peer_stat.last_region_report_ts;
                     peer_stat.last_region_report_written_bytes = hb_task.written_bytes;
                     peer_stat.last_region_report_written_keys = hb_task.written_keys;
