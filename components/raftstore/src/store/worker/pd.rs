@@ -1194,6 +1194,8 @@ where
                             );
                             hb_task.written_bytes - peer_stat.last_region_report_written_bytes
                         });
+                    let written_bytes_delta =
+                        hb_task.written_bytes - peer_stat.last_region_report_written_bytes;
                     let written_keys_delta = hb_task
                         .written_keys
                         .checked_sub(peer_stat.last_region_report_written_keys)
@@ -1205,6 +1207,8 @@ where
                             );
                             hb_task.written_keys - peer_stat.last_region_report_written_keys
                         });
+                    let written_keys_delta =
+                        hb_task.written_keys - peer_stat.last_region_report_written_keys;
                     // let written_bytes_delta = hb_task
                     //     .written_bytes
                     //     .checked_sub(peer_stat.last_region_report_written_bytes)
