@@ -84,6 +84,7 @@ pub struct HeartbeatTask {
     pub approximate_size: u64,
     pub approximate_keys: u64,
     pub replication_status: Option<RegionReplicationStatus>,
+    pub idt: String,
 }
 
 /// Uses an asynchronous thread to tell PD something.
@@ -1117,7 +1118,8 @@ where
                                 "heartbeat and peer_stat peer id mismatch";
                                 "region_id" => hb_task.region.get_id(),
                                 "hb_peer_id" => hb_task.peer.get_id(),
-                                "stat_peer_id" => peer_id
+                                "stat_peer_id" => peer_id,
+                                "idt" => &hb_task.idt,
                             );
                         }
                     }
@@ -1135,6 +1137,7 @@ where
                                 "peer_id" => hb_task.peer.get_id(),
                                 "hb_task.written_bytes" => hb_task.written_bytes,
                                 "peer_stat.last_written_bytes" => peer_stat.last_written_bytes,
+                                "idt" => &hb_task.idt,
                             );
                             0
                         });
@@ -1149,6 +1152,7 @@ where
                                 "peer_id" => hb_task.peer.get_id(),
                                 "hb_task.written_keys" => hb_task.written_keys,
                                 "peer_stat.last_written_keys" => peer_stat.last_written_keys,
+                                "idt" => &hb_task.idt,
                             );
                             0
                         });
@@ -1159,7 +1163,8 @@ where
                         "region_id" => hb_task.region.get_id(),
                         "peer_id" => hb_task.peer.get_id(),
                         "old" => peer_stat.last_written_bytes,
-                        "new" => hb_task.written_bytes, 
+                        "new" => hb_task.written_bytes,
+                        "idt" => &hb_task.idt,
                     );
                     info!(
                         "last_written_keys update";
@@ -1167,7 +1172,8 @@ where
                         "peer_id" => hb_task.peer.get_id(),
                         "old" => peer_stat.last_written_keys,
                         "new" => hb_task.written_keys,
-                    ); 
+                        "idt" => &hb_task.idt,
+                    );
                     peer_stat.last_written_bytes = hb_task.written_bytes;
                     peer_stat.last_written_keys = hb_task.written_keys;
                     peer_stat.last_read_bytes = peer_stat.read_bytes;

@@ -3322,6 +3322,10 @@ where
     }
 
     pub fn heartbeat_pd<T>(&mut self, ctx: &PollContext<EK, ER, T>) {
+        self.heartbeat_pd_with_idt(ctx, "".to_owned());
+    }
+
+    pub fn heartbeat_pd_with_idt<T>(&mut self, ctx: &PollContext<EK, ER, T>, idt: String) {
         let task = PdTask::Heartbeat(HeartbeatTask {
             term: self.term(),
             region: self.region().clone(),
@@ -3333,6 +3337,7 @@ where
             approximate_size: self.approximate_size.unwrap_or_default(),
             approximate_keys: self.approximate_keys.unwrap_or_default(),
             replication_status: self.region_replication_status(),
+            idt: idt,
         });
         if !self.is_region_size_or_keys_none() {
             if let Err(e) = ctx.pd_scheduler.schedule(task) {

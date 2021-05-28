@@ -891,14 +891,22 @@ where
         // Update leader lease when the Raft state changes.
         if let Some(ss) = ready.ss() {
             if StateRole::Leader == ss.raft_state {
+                use rand::distributions::Alphanumeric;
+                use rand::{thread_rng, Rng};
+                let idt = thread_rng()
+                    .sample_iter(&Alphanumeric)
+                    .take(8)
+                    .map(char::from)
+                    .collect();
                 info!(
                     "notify pd on role changed";
                     "region_id" => self.fsm.region_id(),
                     "peer_id" => self.fsm.peer_id(),
+                    "idt"=>&idt,
                 );
                 self.fsm.missing_ticks = 0;
                 self.register_split_region_check_tick();
-                self.fsm.peer.heartbeat_pd(&self.ctx);
+                self.fsm.peer.heartbeat_pd_with_idt(&self.ctx, idt);
                 self.register_pd_heartbeat_tick();
             }
         }
@@ -1253,12 +1261,20 @@ where
         }
 
         if self.fsm.peer.any_new_peer_catch_up(from_peer_id) {
+            use rand::distributions::Alphanumeric;
+            use rand::{thread_rng, Rng};
+            let idt = thread_rng()
+                .sample_iter(&Alphanumeric)
+                .take(8)
+                .map(char::from)
+                .collect();
             info!(
                 "notify pd on any new peer catch up";
                 "region_id" => self.fsm.region_id(),
                 "peer_id" => self.fsm.peer_id(),
+                "idt" => &idt,
             );
-            self.fsm.peer.heartbeat_pd(self.ctx);
+            self.fsm.peer.heartbeat_pd_with_idt(self.ctx, idt);
             self.fsm.peer.should_wake_up = true;
         }
 
@@ -3745,12 +3761,20 @@ where
         if !self.fsm.peer.is_leader() {
             return;
         }
+        use rand::distributions::Alphanumeric;
+        use rand::{thread_rng, Rng};
+        let idt = thread_rng()
+            .sample_iter(&Alphanumeric)
+            .take(8)
+            .map(char::from)
+            .collect();
         info!(
             "notify pd on heartbeat tick";
             "region_id" => self.fsm.region_id(),
             "peer_id" => self.fsm.peer_id(),
+            "idt" => &idt,
         );
-        self.fsm.peer.heartbeat_pd(self.ctx);
+        self.fsm.peer.heartbeat_pd_with_idt(self.ctx, idt);
         if self.ctx.cfg.hibernate_regions && self.fsm.peer.replication_mode_need_catch_up() {
             self.register_pd_heartbeat_tick();
         }
