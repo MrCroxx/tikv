@@ -1133,6 +1133,8 @@ where
                                 "subtracting written_bytes and last_written_bytes overflowed";
                                 "region_id" => hb_task.region.get_id(),
                                 "peer_id" => hb_task.peer.get_id(),
+                                "hb_task.written_bytes" => hb_task.written_bytes,
+                                "peer_stat.last_written_bytes" => peer_stat.last_written_bytes,
                             );
                             0
                         });
@@ -1145,11 +1147,27 @@ where
                                 "subtracting written_keys and last_written_keys overflowed";
                                 "region_id" => hb_task.region.get_id(),
                                 "peer_id" => hb_task.peer.get_id(),
+                                "hb_task.written_keys" => hb_task.written_keys,
+                                "peer_stat.last_written_keys" => peer_stat.last_written_keys,
                             );
                             0
                         });
                     let written_keys_delta = hb_task.written_keys - peer_stat.last_written_keys;
                     let mut last_report_ts = peer_stat.last_report_ts;
+                    info!(
+                        "last_written_bytes update";
+                        "region_id" => hb_task.region.get_id(),
+                        "peer_id" => hb_task.peer.get_id(),
+                        "old" => peer_stat.last_written_bytes,
+                        "new" => hb_task.written_bytes, 
+                    );
+                    info!(
+                        "last_written_keys update";
+                        "region_id" => hb_task.region.get_id(),
+                        "peer_id" => hb_task.peer.get_id(),
+                        "old" => peer_stat.last_written_keys,
+                        "new" => hb_task.written_keys,
+                    ); 
                     peer_stat.last_written_bytes = hb_task.written_bytes;
                     peer_stat.last_written_keys = hb_task.written_keys;
                     peer_stat.last_read_bytes = peer_stat.read_bytes;

@@ -891,6 +891,11 @@ where
         // Update leader lease when the Raft state changes.
         if let Some(ss) = ready.ss() {
             if StateRole::Leader == ss.raft_state {
+                info!(
+                    "notify pd on role changed";
+                    "region_id" => self.fsm.region_id(),
+                    "peer_id" => self.fsm.peer_id(),
+                );
                 self.fsm.missing_ticks = 0;
                 self.register_split_region_check_tick();
                 self.fsm.peer.heartbeat_pd(&self.ctx);
@@ -1248,6 +1253,11 @@ where
         }
 
         if self.fsm.peer.any_new_peer_catch_up(from_peer_id) {
+            info!(
+                "notify pd on any new peer catch up";
+                "region_id" => self.fsm.region_id(),
+                "peer_id" => self.fsm.peer_id(),
+            );
             self.fsm.peer.heartbeat_pd(self.ctx);
             self.fsm.peer.should_wake_up = true;
         }
@@ -3735,6 +3745,11 @@ where
         if !self.fsm.peer.is_leader() {
             return;
         }
+        info!(
+            "notify pd on heartbeat tick";
+            "region_id" => self.fsm.region_id(),
+            "peer_id" => self.fsm.peer_id(),
+        );
         self.fsm.peer.heartbeat_pd(self.ctx);
         if self.ctx.cfg.hibernate_regions && self.fsm.peer.replication_mode_need_catch_up() {
             self.register_pd_heartbeat_tick();
