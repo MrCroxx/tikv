@@ -3326,6 +3326,11 @@ where
     }
 
     pub fn heartbeat_pd_with_idt<T>(&mut self, ctx: &PollContext<EK, ER, T>, idt: String) {
+        use std::thread;
+        info!(
+            "create pd heartbeat task";
+            "thread id" => thread::current().id(),
+        );
         let task = PdTask::Heartbeat(HeartbeatTask {
             term: self.term(),
             region: self.region().clone(),

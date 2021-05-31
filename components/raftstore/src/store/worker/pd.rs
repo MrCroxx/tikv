@@ -1127,6 +1127,11 @@ where
                     peer_stat.approximate_keys = hb_task.approximate_keys;
                     let read_bytes_delta = peer_stat.read_bytes - peer_stat.last_read_bytes;
                     let read_keys_delta = peer_stat.read_keys - peer_stat.last_read_keys;
+                    use std::thread;
+                    info!(
+                        "pd_scheduler";
+                        "thread id" => thread::current().id(),
+                    );
                     hb_task
                         .written_bytes
                         .checked_sub(peer_stat.last_written_bytes)
