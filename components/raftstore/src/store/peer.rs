@@ -3327,12 +3327,6 @@ where
 
     pub fn heartbeat_pd_with_idt<T>(&mut self, ctx: &PollContext<EK, ER, T>, idt: String) {
         use std::thread;
-        info!(
-            "create pd heartbeat task";
-            "thread id" => thread::current().id().as_u64().get(),
-            "peer_id" => self.peer.get_id(),
-            "region_id" => self.region_id,
-        );
         let task = PdTask::Heartbeat(HeartbeatTask {
             term: self.term(),
             region: self.region().clone(),
@@ -3344,9 +3338,16 @@ where
             approximate_size: self.approximate_size.unwrap_or_default(),
             approximate_keys: self.approximate_keys.unwrap_or_default(),
             replication_status: self.region_replication_status(),
-            idt: idt,
+            idt: idt.to_owned(),
         });
         if !self.is_region_size_or_keys_none() {
+            info!(
+                "create pd heartbeat task";
+                "thread id" => thread::current().id().as_u64().get(),
+                "peer_id" => self.peer.get_id(),
+                "region_id" => self.region_id,
+                "idt" => idt.to_owned(),
+            );
             if let Err(e) = ctx.pd_scheduler.schedule(task) {
                 error!(
                     "failed to notify pd";
@@ -3384,6 +3385,13 @@ where
         };
         self.pending_pd_heartbeat_tasks
             .fetch_add(1, Ordering::SeqCst);
+        info!(
+            "create pd heartbeat task (with split check)";
+            "thread id" => thread::current().id().as_u64().get(),
+            "peer_id" => self.peer.get_id(),
+            "region_id" => self.region_id,
+            "idt" => idt.to_owned(),
+        );
         if let Err(e) = ctx.split_check_scheduler.schedule(split_check_task) {
             error!(
                 "failed to notify pd";

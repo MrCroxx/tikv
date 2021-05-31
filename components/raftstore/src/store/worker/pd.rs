@@ -1129,7 +1129,7 @@ where
                     let read_keys_delta = peer_stat.read_keys - peer_stat.last_read_keys;
                     use std::thread;
                     info!(
-                        "pd_scheduler";
+                        "scheduler";
                         "thread_id" => thread::current().id().as_u64().get(),
                         "region_id" => hb_task.region.get_id(),
                         "peer_id" => hb_task.peer.get_id(),
