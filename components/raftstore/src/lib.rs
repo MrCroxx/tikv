@@ -7,6 +7,7 @@
 #![feature(min_specialization)]
 #![feature(box_patterns)]
 #![feature(vecdeque_binary_search)]
+#![feature(thread_id_value)]
 
 #[macro_use]
 extern crate bitflags;

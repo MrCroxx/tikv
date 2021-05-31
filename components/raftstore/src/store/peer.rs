@@ -3329,7 +3329,7 @@ where
         use std::thread;
         info!(
             "create pd heartbeat task";
-            "thread id" => thread::current().id(),
+            "thread id" => thread::current().id().as_u64().get(),
         );
         let task = PdTask::Heartbeat(HeartbeatTask {
             term: self.term(),
