@@ -1130,7 +1130,9 @@ where
                     use std::thread;
                     info!(
                         "pd_scheduler";
-                        "thread id" => thread::current().id().as_u64().get(),
+                        "thread_id" => thread::current().id().as_u64().get(),
+                        "region_id" => hb_task.region.get_id(),
+                        "peer_id" => hb_task.peer.get_id(),
                     );
                     hb_task
                         .written_bytes

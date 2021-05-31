@@ -3330,6 +3330,8 @@ where
         info!(
             "create pd heartbeat task";
             "thread id" => thread::current().id().as_u64().get(),
+            "peer_id" => self.peer.get_id(),
+            "region_id" => self.region_id,
         );
         let task = PdTask::Heartbeat(HeartbeatTask {
             term: self.term(),
