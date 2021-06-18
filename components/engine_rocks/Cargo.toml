@@ -71,7 +71,10 @@ protobuf = "2"
 fail = "0.4"
 
 [dependencies.rocksdb]
-git = "https://github.com/tikv/rust-rocksdb.git"
+# TODO(MrCroxx): move back to master branch after ci is fixed, begin
+# git = "https://github.com/tikv/rust-rocksdb.git"
+path = "../../../rust-rocksdb"
+# end
 package = "rocksdb"
 features = ["encryption", "static_libcpp"]
 

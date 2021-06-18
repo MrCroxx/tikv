@@ -11,10 +11,23 @@ impl RaftLogCompactionFilterFactory {}
 impl CompactionFilterFactory for RaftLogCompactionFilterFactory {
     fn create_compaction_filter(
         &self,
-        _: &engine_rocks::raw::CompactionFilterContext,
+        context: &engine_rocks::raw::CompactionFilterContext,
     ) -> *mut engine_rocks::raw::DBCompactionFilter {
+        let (start_key, end_key) = context.key_range();
+        let (start_region, _) = keys::decode_raft_log_key(start_key).unwrap();
+        let (end_region, _) = keys::decode_raft_log_key(end_key).unwrap();
+
+        let mut map = HashMap::new();
+
         let indexes = RAFT_LOG_GC_INDEXES.read().unwrap();
-        let filter = Box::new(RaftLogCompactionFilter::new(indexes.clone()));
+        indexes.iter().for_each(|(rid, idx)| {
+            if start_region <= *rid && *rid <= end_region {
+                map.insert(*rid, *idx);
+            }
+        });
+        drop(indexes);
+
+        let filter = Box::new(RaftLogCompactionFilter::new(map));
         let name = CString::new("").unwrap();
         unsafe { new_compaction_filter_raw(name, filter) }
     }
