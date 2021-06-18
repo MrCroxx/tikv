@@ -3,6 +3,7 @@
 use engine_rocks::raw::{new_compaction_filter_raw, CompactionFilter, CompactionFilterFactory};
 use engine_rocks::RAFT_LOG_GC_INDEXES;
 use std::{collections::HashMap, ffi::CString};
+use tikv_util::info;
 
 pub struct RaftLogCompactionFilterFactory {}
 
@@ -18,6 +19,7 @@ impl CompactionFilterFactory for RaftLogCompactionFilterFactory {
         let (end_region, _) = keys::decode_raft_log_key(end_key).unwrap();
 
         let mut map = HashMap::new();
+        let files = context.file_numbers();
 
         let indexes = RAFT_LOG_GC_INDEXES.read().unwrap();
         indexes.iter().for_each(|(rid, idx)| {
@@ -26,6 +28,11 @@ impl CompactionFilterFactory for RaftLogCompactionFilterFactory {
             }
         });
         drop(indexes);
+        info!(
+            "raft log gc on compaction";
+            "files"=>format!("{:?}",&files),
+            "progress"=>format!("{:?}",&map),
+        );
 
         let filter = Box::new(RaftLogCompactionFilter::new(map));
         let name = CString::new("").unwrap();
