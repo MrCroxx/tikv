@@ -61,10 +61,13 @@ impl CompactionFilter for RaftLogCompactionFilter {
         _new_value: &mut Vec<u8>,
         _value_changed: &mut bool,
     ) -> bool {
-        let (rid, idx) = keys::decode_raft_log_key(_key).unwrap();
-        match self.map.get(&rid) {
-            Some(compact_idx) => idx < *compact_idx,
-            None => false,
+        // TODO(MrCroxx): need to delete stat key?
+        match keys::decode_raft_log_key(_key) {
+            Ok((rid, idx)) => match self.map.get(&rid) {
+                Some(compact_idx) => idx < *compact_idx,
+                None => false,
+            },
+            Err(_) => false,
         }
     }
 }
