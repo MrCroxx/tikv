@@ -159,6 +159,18 @@ fn make_region_meta_key(region_id: u64, suffix: u8) -> [u8; 11] {
     key
 }
 
+#[inline]
+pub fn extract_region_id(prefix: &[u8], key: &[u8]) -> Result<u64> {
+    if key.len() < prefix.len() + mem::size_of::<u64>() {
+        return Err(Error::InvalidRegionIdLength(key.to_owned()));
+    }
+    if !key.starts_with(prefix) {
+        return Err(Error::InvalidRegionPrefix("?".to_owned(), key.to_owned()));
+    }
+    let region_id = BigEndian::read_u64(&key[prefix.len()..prefix.len() + mem::size_of::<u64>()]);
+    Ok(region_id)
+}
+
 /// Decode region key, return the region id and meta suffix type.
 fn decode_region_key(prefix: &[u8], key: &[u8], category: &str) -> Result<(u64, u8)> {
     if prefix.len() + mem::size_of::<u64>() + mem::size_of::<u8>() != key.len() {
@@ -289,6 +301,8 @@ pub enum Error {
     InvalidRegionKeyLength(String, Vec<u8>),
     #[error("invalid region {0} prefix for key {}", log_wrappers::Value(.1))]
     InvalidRegionPrefix(String, Vec<u8>),
+    #[error("invalid region id length for key {}",log_wrappers::Value(.0))]
+    InvalidRegionIdLength(Vec<u8>),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

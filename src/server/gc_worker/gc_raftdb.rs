@@ -16,8 +16,9 @@ impl CompactionFilterFactory for RaftLogCompactionFilterFactory {
     ) -> *mut engine_rocks::raw::DBCompactionFilter {
         let start_key = context.start_key();
         let end_key = context.end_key();
-        let (start_region, _) = keys::decode_raft_log_key(start_key).unwrap();
-        let (end_region, _) = keys::decode_raft_log_key(end_key).unwrap();
+        let start_region =
+            keys::extract_region_id(keys::REGION_RAFT_PREFIX_KEY, start_key).unwrap();
+        let end_region = keys::extract_region_id(keys::REGION_RAFT_PREFIX_KEY, end_key).unwrap();
 
         let mut map = HashMap::new();
         let files = context.file_numbers();
