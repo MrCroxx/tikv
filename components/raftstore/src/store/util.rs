@@ -222,6 +222,7 @@ pub fn admin_cmd_epoch_lookup(admin_cmp_type: AdminCmdType) -> AdminCmdEpochStat
         AdminCmdType::RollbackMerge => AdminCmdEpochState::new(true, true, true, false),
         // Transfer leader
         AdminCmdType::TransferLeader => AdminCmdEpochState::new(true, true, false, false),
+        AdminCmdType::TransferLeaderV2 => AdminCmdEpochState::new(true, true, false, false),
     }
 }
 
@@ -1833,6 +1834,7 @@ mod tests {
             AdminCmdType::CommitMerge,
             AdminCmdType::RollbackMerge,
             AdminCmdType::TransferLeader,
+            AdminCmdType::TransferLeaderV2,
         ] {
             let mut admin = AdminRequest::default();
             admin.set_cmd_type(*ty);
@@ -1869,6 +1871,7 @@ mod tests {
             AdminCmdType::CommitMerge,
             AdminCmdType::RollbackMerge,
             AdminCmdType::TransferLeader,
+            AdminCmdType::TransferLeaderV2,
         ] {
             let mut admin = AdminRequest::default();
             admin.set_cmd_type(*ty);

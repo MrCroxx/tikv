@@ -21,6 +21,7 @@ use kvproto::pdpb::PeerStats;
 use kvproto::raft_cmdpb::{
     self, AdminCmdType, AdminResponse, ChangePeerRequest, CmdType, CommitMergeRequest,
     RaftCmdRequest, RaftCmdResponse, TransferLeaderRequest, TransferLeaderResponse,
+    TransferLeaderV2Request,
 };
 use kvproto::raft_serverpb::{
     ExtraMessage, ExtraMessageType, MergeState, PeerState, RaftApplyState, RaftMessage,
@@ -2284,6 +2285,7 @@ where
         true
     }
 
+    // TODO(MrCroxx): review me
     /// Propose a request.
     ///
     /// Return true means the request has been proposed successfully.
@@ -2317,6 +2319,9 @@ where
             Ok(RequestPolicy::ReadIndex) => return self.read_index(ctx, req, err_resp, cb),
             Ok(RequestPolicy::ProposeTransferLeader) => {
                 return self.propose_transfer_leader(ctx, req, cb);
+            }
+            Ok(RequestPolicy::ProposeTransferLeaderV2) => {
+                return self.propose_transfer_leader_v2(ctx, req, cb);
             }
             Ok(RequestPolicy::ProposeNormal) => {
                 let mut stores = Vec::new();
@@ -2941,6 +2946,7 @@ where
             let cmd_type = cmd.get_admin_request().get_cmd_type();
             match cmd_type {
                 AdminCmdType::TransferLeader
+                | AdminCmdType::TransferLeaderV2
                 | AdminCmdType::ComputeHash
                 | AdminCmdType::VerifyHash
                 | AdminCmdType::InvalidAdmin => continue,
@@ -3073,6 +3079,7 @@ where
         Ok(Either::Left(propose_index))
     }
 
+    // TODO(MrCroxx): review me
     fn execute_transfer_leader<T>(
         &mut self,
         ctx: &mut PollContext<EK, ER, T>,
@@ -3162,6 +3169,66 @@ where
         let peer = transfer_leader.get_peer();
 
         let transferred = self.pre_transfer_leader(peer);
+
+        // transfer leader command doesn't need to replicate log and apply, so we
+        // return immediately. Note that this command may fail, we can view it just as an advice
+        cb.invoke_with_response(make_transfer_leader_response());
+
+        transferred
+    }
+
+    // TODO(MrCroxx): review me
+    /// Return true to if the transfer leader request is accepted.
+    ///
+    /// When transferring leadership begins, leader sends a pre-transfer
+    /// to target follower first to ensures it's ready to become leader.
+    /// After that the real transfer leader process begin.
+    ///
+    /// 1. pre_transfer_leader on leader:
+    ///     Leader will send a MsgTransferLeader to follower.
+    /// 2. execute_transfer_leader on follower
+    ///     If follower passes all necessary checks, it will reply an
+    ///     ACK with type MsgTransferLeader and its promised persistent index.
+    /// 3. execute_transfer_leader on leader:
+    ///     Leader checks if it's appropriate to transfer leadership. If it
+    ///     does, it calls raft transfer_leader API to do the remaining work.
+    ///
+    /// See also: tikv/rfcs#37.
+    fn propose_transfer_leader_v2<T>(
+        &mut self,
+        ctx: &mut PollContext<EK, ER, T>,
+        req: RaftCmdRequest,
+        cb: Callback<EK::Snapshot>,
+    ) -> bool {
+        // TODO(MrCroxx): review me
+        ctx.raft_metrics.propose.transfer_leader += 1;
+
+        let transfer_leader_v2 = get_transfer_leader_v2_cmd(&req).unwrap();
+        let candidate_peers = transfer_leader_v2.get_peers();
+        if candidate_peers.is_empty() {
+            return false;
+        }
+
+        let prs = self.raft_group.raft.prs();
+        let mut peer = metapb::Peer::default();
+        let mut max_matched = 0;
+
+        for candidate in candidate_peers {
+            if let Some(pr) = prs.get(candidate.id) {
+                if pr.matched > max_matched {
+                    max_matched = pr.matched;
+                    peer = candidate.clone();
+                }
+            } else {
+                continue;
+            }
+        }
+
+        if peer == metapb::Peer::default() {
+            return false;
+        }
+
+        let transferred = self.pre_transfer_leader(&peer);
 
         // transfer leader command doesn't need to replicate log and apply, so we
         // return immediately. Note that this command may fail, we can view it just as an advice
@@ -3796,6 +3863,7 @@ pub enum RequestPolicy {
     ReadIndex,
     ProposeNormal,
     ProposeTransferLeader,
+    ProposeTransferLeaderV2,
     ProposeConfChange,
 }
 
@@ -3815,6 +3883,10 @@ pub trait RequestInspector {
             }
             if get_transfer_leader_cmd(req).is_some() {
                 return Ok(RequestPolicy::ProposeTransferLeader);
+            }
+            // TODO(MrCroxx): review me
+            if get_transfer_leader_v2_cmd(req).is_some() {
+                return Ok(RequestPolicy::ProposeTransferLeaderV2);
             }
             return Ok(RequestPolicy::ProposeNormal);
         }
@@ -3924,6 +3996,19 @@ fn get_transfer_leader_cmd(msg: &RaftCmdRequest) -> Option<&TransferLeaderReques
     }
 
     Some(req.get_transfer_leader())
+}
+
+// TODO(MrCroxx): review me
+fn get_transfer_leader_v2_cmd(msg: &RaftCmdRequest) -> Option<&TransferLeaderV2Request> {
+    if !msg.has_admin_request() {
+        return None;
+    }
+    let req = msg.get_admin_request();
+    if !req.has_transfer_leader_v2() {
+        return None;
+    }
+
+    Some(req.get_transfer_leader_v2())
 }
 
 fn get_sync_log_from_request(msg: &RaftCmdRequest) -> bool {
@@ -4036,6 +4121,8 @@ mod tests {
             AdminCmdType::InvalidAdmin,
             AdminCmdType::CompactLog,
             AdminCmdType::TransferLeader,
+            // TODO(MrCroxx): review me
+            // AdminCmdType::TransferLeaderV2,
             AdminCmdType::ComputeHash,
             AdminCmdType::VerifyHash,
         ];
@@ -4141,6 +4228,9 @@ mod tests {
         table.push((req.clone(), RequestPolicy::ProposeTransferLeader));
         admin_req.clear_transfer_leader();
         req.clear_admin_request();
+
+        // TODO(MrCroxx): review me
+        // add raft_cmdpb::TransferLeaderV2 here ?
 
         for (op, policy) in vec![
             (CmdType::Get, RequestPolicy::ReadLocal),

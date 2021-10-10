@@ -24,6 +24,7 @@ use kvproto::replication_modepb::RegionReplicationStatus;
 use kvproto::{metapb, pdpb};
 use ordered_float::OrderedFloat;
 use prometheus::local::LocalHistogram;
+use protobuf::RepeatedField;
 use raft::eraftpb::ConfChangeType;
 use yatp::Remote;
 
@@ -1171,6 +1172,21 @@ where
                     );
                     let req = new_transfer_leader_request(transfer_leader.take_peer());
                     send_admin_request(&router, region_id, epoch, peer, req, Callback::None, Default::default());
+                } else if resp.has_transfer_leader_v2() {
+                    PD_HEARTBEAT_COUNTER_VEC
+                        .with_label_values(&["transfer leader v2"])
+                        .inc();
+                    
+                    let mut transfer_leader_v2 = resp.take_transfer_leader_v2();
+                    info!(
+                        "try to transfer leader";
+                        "region_id" => region_id,
+                        "from_peer" => ?peer,
+                        "to_peer_list" => ?transfer_leader_v2.get_peers(),
+                    );
+                    let req = new_transfer_leader_v2_request(transfer_leader_v2.take_peers());
+                    send_admin_request(&router, region_id, epoch, peer, req, Callback::None, Default::default());
+
                 } else if resp.has_split_region() {
                     PD_HEARTBEAT_COUNTER_VEC
                         .with_label_values(&["split region"])
@@ -1702,6 +1718,13 @@ fn new_transfer_leader_request(peer: metapb::Peer) -> AdminRequest {
     let mut req = AdminRequest::default();
     req.set_cmd_type(AdminCmdType::TransferLeader);
     req.mut_transfer_leader().set_peer(peer);
+    req
+}
+
+fn new_transfer_leader_v2_request(peers: RepeatedField<metapb::Peer>) -> AdminRequest {
+    let mut req = AdminRequest::default();
+    req.set_cmd_type(AdminCmdType::TransferLeaderV2);
+    req.mut_transfer_leader_v2().set_peers(peers);
     req
 }
 

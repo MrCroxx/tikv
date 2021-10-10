@@ -579,6 +579,7 @@ where
                         );
                     }
                 }
+                // TODO(MrCroxx): review me
                 PeerMsg::RaftCommand(cmd) => {
                     self.ctx
                         .raft_metrics
@@ -3393,6 +3394,7 @@ where
         Ok(())
     }
 
+    // TODO(MrCroxx): review me
     fn pre_propose_raft_command(
         &mut self,
         msg: &RaftCmdRequest,
@@ -3482,6 +3484,7 @@ where
         }
     }
 
+    // TODO(MrCroxx): review me
     fn propose_raft_command(
         &mut self,
         mut msg: RaftCmdRequest,
